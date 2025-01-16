@@ -104,7 +104,9 @@ class LayoutLMv2Embeddings(Layer):
         self.LayerNorm = nn.LayerNorm(config.hidden_size, epsilon=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-        self.register_buffer("position_ids", paddle.arange(config.max_position_embeddings).expand((1, -1)))
+        self.register_buffer(
+            "position_ids", paddle.arange(config.max_position_embeddings, dtype="int64").expand((1, -1))
+        )
 
     def _cal_spatial_position_embeddings(self, bbox):
         try:
@@ -294,7 +296,7 @@ class LayoutLMv2SelfAttention(nn.Layer):
 
         bool_attention_mask = attention_mask.astype(paddle.bool)
         bool_attention_mask.stop_gradient = True
-        attention_scores_shape = paddle.shape(attention_scores)
+        attention_scores_shape = attention_scores.shape
         attention_scores = paddle.where(
             bool_attention_mask.expand(attention_scores_shape),
             paddle.ones(attention_scores_shape) * float("-1e10"),
@@ -586,7 +588,7 @@ class LayoutLMv2Model(LayoutLMv2PretrainedModel):
     Refer to the superclass documentation for the generic methods.
 
     This model is also a Paddle `paddle.nn.Layer <https://www.paddlepaddle.org.cn/documentation
-    /docs/en/api/paddle/fluid/dygraph/layers/Layer_en.html>`__ subclass. Use it as a regular Paddle Layer
+    /docs/zh/api/paddle/nn/Layer_cn.html>`__ subclass. Use it as a regular Paddle Layer
     and refer to the Paddle documentation for all matter related to general usage and behavior.
 
     Args:
@@ -709,7 +711,7 @@ class LayoutLMv2Model(LayoutLMv2PretrainedModel):
         output_hidden_states=False,
         output_attentions=False,
     ):
-        input_shape = paddle.shape(input_ids)
+        input_shape = input_ids.shape
 
         visual_shape = list(input_shape)
         visual_shape[1] = self.config.image_feature_pool_shape[0] * self.config.image_feature_pool_shape[1]
@@ -743,7 +745,7 @@ class LayoutLMv2Model(LayoutLMv2PretrainedModel):
                 visual_bbox_y[1:].expand(expand_shape[::-1]).transpose([1, 0]),
             ],
             axis=-1,
-        ).reshape([expand_shape[0] * expand_shape[1], paddle.shape(bbox)[-1]])
+        ).reshape([expand_shape[0] * expand_shape[1], bbox.shape[-1]])
         visual_bbox = visual_bbox.expand([input_shape[0], visual_bbox.shape[0], visual_bbox.shape[1]])
         final_bbox = paddle.concat([bbox, visual_bbox], axis=1)
 
