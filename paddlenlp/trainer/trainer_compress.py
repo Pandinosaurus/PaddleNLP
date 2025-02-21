@@ -38,6 +38,7 @@ from ..transformers.ofa_utils import (
     prepare_qkv_ofa,
     reorder_neuron_head,
 )
+from ..utils.env import PADDLE_INFERENCE_MODEL_SUFFIX, PADDLE_INFERENCE_WEIGHTS_SUFFIX
 from ..utils.log import logger
 from .trainer import Trainer
 
@@ -630,10 +631,7 @@ def _post_training_quantization_grid_search(self, model_dir):
     output_dir_list = []
 
     def _post_training_quantization(algo, batch_size, batch_nums):
-        try:
-            from paddle.fluid.contrib.slim.quantization import PostTrainingQuantization
-        except ImportError:
-            from paddle.static.quantization import PostTrainingQuantization
+        from paddle.static.quantization import PostTrainingQuantization
 
         def _batch_generator_func():
             param_name_list = []
@@ -654,8 +652,8 @@ def _post_training_quantization_grid_search(self, model_dir):
             executor=exe,
             batch_generator=_batch_generator_func,
             model_dir=model_dir,
-            model_filename=args.input_filename_prefix + ".pdmodel",
-            params_filename=args.input_filename_prefix + ".pdiparams",
+            model_filename=args.input_filename_prefix + PADDLE_INFERENCE_MODEL_SUFFIX,
+            params_filename=args.input_filename_prefix + PADDLE_INFERENCE_WEIGHTS_SUFFIX,
             batch_size=batch_size,
             batch_nums=batch_nums,
             scope=None,
@@ -678,8 +676,8 @@ def _post_training_quantization_grid_search(self, model_dir):
         save_model_path = os.path.join(model_dir, algo + "_".join([str(batch_size), str(batch_nums)]))
         post_training_quantization.save_quantized_model(
             save_model_path=save_model_path,
-            model_filename=args.output_filename_prefix + ".pdmodel",
-            params_filename=args.output_filename_prefix + ".pdiparams",
+            model_filename=args.output_filename_prefix + PADDLE_INFERENCE_MODEL_SUFFIX,
+            params_filename=args.output_filename_prefix + PADDLE_INFERENCE_WEIGHTS_SUFFIX,
         )
         output_dir_list.append(save_model_path)
 
@@ -842,16 +840,12 @@ def _quant_embeddings(self, input_prefix):
 
     input_dir = os.path.dirname(input_prefix)
 
-    paddle.fluid.io.save_inference_model(
-        input_dir,
+    paddle.static.save_inference_model(
+        os.path.join(input_dir, self.args.output_filename_prefix),
         feed_target_names,
         fetch_targets,
         exe,
-        quant_emb_program,
-        model_filename=self.args.output_filename_prefix + ".pdmodel",
-        params_filename=self.args.output_filename_prefix + ".pdiparams",
-        export_for_deployment=True,
-        program_only=False,
+        program=quant_emb_program,
     )
 
 
@@ -878,9 +872,9 @@ def auto_model_dynabert_forward(
     if input_ids is not None and inputs_embeds is not None:
         raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time.")
     elif input_ids is not None:
-        input_shape = paddle.shape(input_ids)
+        input_shape = input_ids.shape
     elif inputs_embeds is not None:
-        input_shape = paddle.shape(inputs_embeds)[:-1]
+        input_shape = inputs_embeds.shape[:-1]
     else:
         raise ValueError("You have to specify either input_ids or inputs_embeds")
 
@@ -1005,7 +999,7 @@ def cut_embeddings(model, tokenizer, config, word_emb_index, max_seq_length, max
     state_dict = model.state_dict()
 
     word_emb_name = model.base_model_prefix + ".embeddings.word_embeddings.weight"
-    word_emb_np = state_dict[word_emb_name].numpy()
+    word_emb_np = state_dict[word_emb_name].cpu().numpy()
     word_emb_np_new = [word_emb_np[idx] for idx in word_emb_index]
 
     state_dict[word_emb_name] = paddle.to_tensor(word_emb_np_new)

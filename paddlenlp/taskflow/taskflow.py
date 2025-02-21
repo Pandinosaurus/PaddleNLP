@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import threading
-import warnings
 
 import paddle
 
@@ -24,7 +23,7 @@ from .dependency_parsing import DDParserTask
 from .dialogue import DialogueTask
 from .document_intelligence import DocPromptTask
 from .fill_mask import FillMaskTask
-from .information_extraction import GPTask, UIETask
+from .information_extraction import GPTask, UIELLMTask, UIETask
 from .knowledge_mining import NPTagTask, WordTagTask
 from .lexical_analysis import LacTask
 from .multimodal_feature_extraction import MultimodalFeatureExtractionTask
@@ -37,13 +36,14 @@ from .sentiment_analysis import SentaTask, SkepTask, UIESentaTask
 from .text2text_generation import ChatGLMTask
 from .text_classification import TextClassificationTask
 from .text_correction import CSCTask
-from .text_feature_extraction import TextFeatureExtractionTask
+from .text_feature_extraction import (
+    SentenceFeatureExtractionTask,
+    TextFeatureExtractionTask,
+)
 from .text_similarity import TextSimilarityTask
 from .text_summarization import TextSummarizationTask
 from .word_segmentation import SegJiebaTask, SegLACTask, SegWordTagTask
 from .zero_shot_text_classification import ZeroShotTextClassificationTask
-
-warnings.simplefilter(action="ignore", category=Warning, lineno=0, append=False)
 
 TASKS = {
     "dependency_parsing": {
@@ -67,7 +67,10 @@ TASKS = {
     },
     "dialogue": {
         "models": {
-            "plato-mini": {"task_class": DialogueTask, "task_flag": "dialogue-plato-mini"},
+            "plato-mini": {
+                "task_class": DialogueTask,
+                "task_flag": "dialogue-plato-mini",
+            },
             "__internal_testing__/tiny-random-plato": {
                 "task_class": DialogueTask,
                 "task_flag": "dialogue-tiny-random-plato",
@@ -79,7 +82,10 @@ TASKS = {
     },
     "fill_mask": {
         "models": {
-            "fill_mask": {"task_class": FillMaskTask, "task_flag": "fill_mask-fill_mask"},
+            "fill_mask": {
+                "task_class": FillMaskTask,
+                "task_flag": "fill_mask-fill_mask",
+            },
         },
         "default": {
             "model": "fill_mask",
@@ -206,7 +212,10 @@ TASKS = {
     },
     "text_correction": {
         "models": {
-            "ernie-csc": {"task_class": CSCTask, "task_flag": "text_correction-ernie-csc"},
+            "ernie-csc": {
+                "task_class": CSCTask,
+                "task_flag": "text_correction-ernie-csc",
+            },
         },
         "default": {"model": "ernie-csc"},
     },
@@ -314,16 +323,56 @@ TASKS = {
     },
     "information_extraction": {
         "models": {
-            "uie-base": {"task_class": UIETask, "hidden_size": 768, "task_flag": "information_extraction-uie-base"},
+            "paddlenlp/PP-UIE-0.5B": {
+                "task_class": UIELLMTask,
+                "hidden_size": 896,
+                "task_flag": "information_extraction-pp-uie-0.5b",
+            },
+            "paddlenlp/PP-UIE-1.5B": {
+                "task_class": UIELLMTask,
+                "hidden_size": 1536,
+                "task_flag": "information_extraction-pp-uie-1.5b",
+            },
+            "paddlenlp/PP-UIE-7B": {
+                "task_class": UIELLMTask,
+                "hidden_size": 3584,
+                "task_flag": "information_extraction-pp-uie-7b",
+            },
+            "paddlenlp/PP-UIE-14B": {
+                "task_class": UIELLMTask,
+                "hidden_size": 5120,
+                "task_flag": "information_extraction-pp-uie-14b",
+            },
+            "uie-base": {
+                "task_class": UIETask,
+                "hidden_size": 768,
+                "task_flag": "information_extraction-uie-base",
+            },
             "uie-medium": {
                 "task_class": UIETask,
                 "hidden_size": 768,
                 "task_flag": "information_extraction-uie-medium",
             },
-            "uie-mini": {"task_class": UIETask, "hidden_size": 384, "task_flag": "information_extraction-uie-mini"},
-            "uie-micro": {"task_class": UIETask, "hidden_size": 384, "task_flag": "information_extraction-uie-micro"},
-            "uie-nano": {"task_class": UIETask, "hidden_size": 312, "task_flag": "information_extraction-uie-nano"},
-            "uie-tiny": {"task_class": UIETask, "hidden_size": 768, "task_flag": "information_extraction-uie-tiny"},
+            "uie-mini": {
+                "task_class": UIETask,
+                "hidden_size": 384,
+                "task_flag": "information_extraction-uie-mini",
+            },
+            "uie-micro": {
+                "task_class": UIETask,
+                "hidden_size": 384,
+                "task_flag": "information_extraction-uie-micro",
+            },
+            "uie-nano": {
+                "task_class": UIETask,
+                "hidden_size": 312,
+                "task_flag": "information_extraction-uie-nano",
+            },
+            "uie-tiny": {
+                "task_class": UIETask,
+                "hidden_size": 768,
+                "task_flag": "information_extraction-uie-tiny",
+            },
             "uie-medical-base": {
                 "task_class": UIETask,
                 "hidden_size": 768,
@@ -349,7 +398,10 @@ TASKS = {
                 "hidden_size": 768,
                 "task_flag": "information_extraction-uie-x-base",
             },
-            "uie-data-distill-gp": {"task_class": GPTask, "task_flag": "information_extraction-uie-data-distill-gp"},
+            "uie-data-distill-gp": {
+                "task_class": GPTask,
+                "task_flag": "information_extraction-uie-data-distill-gp",
+            },
             "__internal_testing__/tiny-random-uie": {
                 "task_class": UIETask,
                 "hidden_size": 8,
@@ -468,6 +520,10 @@ TASKS = {
             "THUDM/chatglm-6b": {
                 "task_class": ChatGLMTask,
                 "task_flag": "text_generation-THUDM/chatglm-6b",
+            },
+            "THUDM/chatglm2-6b": {
+                "task_class": ChatGLMTask,
+                "task_flag": "text_generation-THUDM/chatglm2-6b",
             },
             "__internal_testing__/tiny-random-chatglm": {
                 "task_class": ChatGLMTask,
@@ -668,12 +724,31 @@ TASKS = {
                 "task_flag": "feature_extraction-tiny-random-ernievil2",
                 "task_priority_path": "__internal_testing__/tiny-random-ernievil2",
             },
+            "moka-ai/m3e-base": {
+                "task_class": SentenceFeatureExtractionTask,
+                "task_flag": "feature_extraction-moka-ai/m3e-base",
+                "task_priority_path": "moka-ai/m3e-base",
+            },
+            "BAAI/bge-small-zh-v1.5": {
+                "task_class": SentenceFeatureExtractionTask,
+                "task_flag": "feature_extraction-BAAI/bge-small-zh-v1.5",
+                "task_priority_path": "BAAI/bge-small-zh-v1.5",
+            },
+            "__internal_testing__/tiny-random-m3e": {
+                "task_class": SentenceFeatureExtractionTask,
+                "task_flag": "__internal_testing__/tiny-random-m3e",
+                "task_priority_path": "__internal_testing__/tiny-random-m3e",
+            },
         },
         "default": {"model": "PaddlePaddle/ernie_vil-2.0-base-zh"},
     },
 }
 
 support_schema_list = [
+    "paddlenlp/PP-UIE-0.5B",
+    "paddlenlp/PP-UIE-1.5B",
+    "paddlenlp/PP-UIE-7B",
+    "paddlenlp/PP-UIE-14B",
     "uie-base",
     "uie-medium",
     "uie-mini",
@@ -717,6 +792,10 @@ support_argument_list = [
     "openai/disco-diffusion-clip-rn50",
     "openai/disco-diffusion-clip-rn101",
     "PaddlePaddle/disco_diffusion_ernie_vil-2.0-base-zh",
+    "paddlenlp/PP-UIE-0.5B",
+    "paddlenlp/PP-UIE-1.5B",
+    "paddlenlp/PP-UIE-7B",
+    "paddlenlp/PP-UIE-14B",
     "uie-base",
     "uie-medium",
     "uie-mini",
@@ -731,6 +810,7 @@ support_argument_list = [
     "__internal_testing__/tiny-random-uie-m",
     "__internal_testing__/tiny-random-uie-x",
     "THUDM/chatglm-6b",
+    "THUDM/chatglm2-6b",
     "THUDM/chatglm-6b-v1.1",
 ]
 
@@ -787,7 +867,11 @@ class Taskflow(object):
         self.kwargs = kwargs
         task_class = TASKS[self.task][tag][self.model]["task_class"]
         self.task_instance = task_class(
-            model=self.model, task=self.task, priority_path=self.priority_path, from_hf_hub=from_hf_hub, **self.kwargs
+            model=self.model,
+            task=self.task,
+            priority_path=self.priority_path,
+            from_hf_hub=from_hf_hub,
+            **self.kwargs,
         )
         task_list = TASKS.keys()
         Taskflow.task_list = task_list
@@ -795,11 +879,11 @@ class Taskflow(object):
         # Add the lock for the concurrency requests
         self._lock = threading.Lock()
 
-    def __call__(self, *inputs):
+    def __call__(self, *inputs, **kwargs):
         """
         The main work function in the taskflow.
         """
-        results = self.task_instance(inputs)
+        results = self.task_instance(inputs, **kwargs)
         return results
 
     def help(self):

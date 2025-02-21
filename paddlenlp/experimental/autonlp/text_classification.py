@@ -47,6 +47,7 @@ from ...transformers import (
 from ...utils.log import logger
 from .auto_trainer_base import AutoTrainerBase
 from .utils import UTCLoss
+from .utils.env import PADDLE_INFERENCE_MODEL_SUFFIX, PADDLE_INFERENCE_WEIGHTS_SUFFIX
 
 
 class AutoTrainerForTextClassification(AutoTrainerBase):
@@ -351,9 +352,7 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
         model_result = self._get_model_result(trial_id=trial_id)
         model_config = model_result.metrics["config"]["candidates"]
         trainer = self._construct_trainer(model_config)
-        trainer.load_state_dict_from_checkpoint(
-            resume_from_checkpoint=os.path.join(model_result.log_dir, self.save_path)
-        )
+        trainer._load_from_checkpoint(resume_from_checkpoint=os.path.join(model_result.log_dir, self.save_path))
 
         if eval_dataset is not None:
             self._data_checks_and_inference([eval_dataset])
@@ -396,9 +395,7 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
         model_config = model_result.metrics["config"]["candidates"]
 
         trainer = self._construct_trainer(model_config)
-        trainer.load_state_dict_from_checkpoint(
-            resume_from_checkpoint=os.path.join(model_result.log_dir, self.save_path)
-        )
+        trainer._load_from_checkpoint(resume_from_checkpoint=os.path.join(model_result.log_dir, self.save_path))
 
         is_utc = False
         if "utc" in model_config["model_name_or_path"]:
@@ -564,16 +561,16 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
         if os.path.exists(default_export_path):
             if "utc" in model_config["model_name_or_path"]:
                 files = [
-                    "model.pdiparams",
-                    "model.pdmodel",
+                    f"model{PADDLE_INFERENCE_WEIGHTS_SUFFIX}",
+                    f"model{PADDLE_INFERENCE_MODEL_SUFFIX}",
                     "tokenizer_config.json",
                     "vocab.txt",
                     "taskflow_config.json",
                 ]
             else:
                 files = [
-                    "model.pdiparams",
-                    "model.pdmodel",
+                    f"model{PADDLE_INFERENCE_WEIGHTS_SUFFIX}",
+                    f"model{PADDLE_INFERENCE_MODEL_SUFFIX}",
                     "tokenizer_config.json",
                     "vocab.txt",
                     "taskflow_config.json",
@@ -598,9 +595,7 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
 
         # Construct trainer
         trainer = self._construct_trainer(model_config)
-        trainer.load_state_dict_from_checkpoint(
-            resume_from_checkpoint=os.path.join(model_result.log_dir, self.save_path)
-        )
+        trainer._load_from_checkpoint(resume_from_checkpoint=os.path.join(model_result.log_dir, self.save_path))
 
         # Save static model
         input_spec = self._get_input_spec(model_config=model_config)
@@ -688,10 +683,7 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
         batch_size: int = 4,
         batch_nums: int = 1,
     ):
-        try:
-            from paddle.fluid.contrib.slim.quantization import PostTrainingQuantization
-        except ImportError:
-            from paddle.static.quantization import PostTrainingQuantization
+        from paddle.static.quantization import PostTrainingQuantization
 
         model_result = self._get_model_result(trial_id=trial_id)
         model_config = model_result.metrics["config"]["candidates"]
@@ -737,15 +729,15 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
                 yield batch_data
 
         paddle.enable_static()
-        place = paddle.fluid.framework._current_expected_place()
+        place = paddle.framework._current_expected_place()
         exe = paddle.static.Executor(place)
 
         post_training_quantization = PostTrainingQuantization(
             executor=exe,
             batch_generator=_batch_generator_func,
             model_dir=export_path,
-            model_filename="model.pdmodel",
-            params_filename="model.pdiparams",
+            model_filename=f"model{PADDLE_INFERENCE_MODEL_SUFFIX}",
+            params_filename=f"model{PADDLE_INFERENCE_WEIGHTS_SUFFIX}",
             batch_size=batch_size,
             batch_nums=batch_nums,
             scope=None,
@@ -766,8 +758,8 @@ class AutoTrainerForTextClassification(AutoTrainerBase):
         post_training_quantization.quantize()
         post_training_quantization.save_quantized_model(
             save_model_path=compress_path,
-            model_filename="model.pdmodel",
-            params_filename="model.pdiparams",
+            model_filename=f"model{PADDLE_INFERENCE_MODEL_SUFFIX}",
+            params_filename=f"model{PADDLE_INFERENCE_WEIGHTS_SUFFIX}",
         )
 
         paddle.disable_static()
